@@ -460,6 +460,14 @@ impl TrayIcon {
     pub fn rect(&self) -> Option<Rect> {
         self.tray.borrow().rect()
     }
+
+    /// Get the tray icon's underlying [window handle](windows_sys::Win32::Foundation::HWND) **Windows only**.
+    ///
+    /// This window handle is valid as long as the tray icon.
+    #[cfg(windows)]
+    pub fn window_handle(&self) -> windows_sys::Win32::Foundation::HWND {
+        self.tray.borrow().hwnd()
+    }
 }
 
 /// Describes a tray icon event.
