@@ -128,8 +128,7 @@ impl Inner {
             None => return vec![],
         };
 
-        let mut result: Vec<FlatItem> =
-            vec![FlatItem::root(items.len())];
+        let mut result: Vec<FlatItem> = vec![FlatItem::root(items.len())];
 
         let mut stack = vec![(items.iter(), 0)];
 
@@ -169,8 +168,7 @@ impl Inner {
             return None;
         }
 
-        let mut stack: Vec<(usize, usize, bool)> =
-            vec![(0, 0, false)];
+        let mut stack: Vec<(usize, usize, bool)> = vec![(0, 0, false)];
         let mut pending_children: Vec<Value<'static>> = Vec::new();
 
         while let Some((idx, depth, processed)) = stack.pop() {
@@ -179,8 +177,7 @@ impl Inner {
 
             if processed {
                 let child_count = if reach_limit { 0 } else { item.children.len() };
-                let children =
-                    pending_children.split_off(pending_children.len() - child_count);
+                let children = pending_children.split_off(pending_children.len() - child_count);
                 let layout = Layout {
                     id: idx as i32,
                     properties: item.to_dbus_map(property_filter),
@@ -270,9 +267,8 @@ impl FlatItem {
     }
 
     fn to_dbus_map(&self, property_filter: &[String]) -> HashMap<Cow<'static, str>, OwnedValue> {
-        let filter = |name: &str| {
-            property_filter.is_empty() || property_filter.iter().any(|s| s == name)
-        };
+        let filter =
+            |name: &str| property_filter.is_empty() || property_filter.iter().any(|s| s == name);
         let mut map: HashMap<Cow<'static, str>, OwnedValue> = HashMap::new();
 
         if self.item_type == "separator" && filter("type") {
@@ -629,10 +625,7 @@ impl DbusMenu {
         }
     }
 
-    async fn about_to_show_group(
-        &self,
-        _ids: Vec<i32>,
-    ) -> zbus::fdo::Result<(Vec<i32>, Vec<i32>)> {
+    async fn about_to_show_group(&self, _ids: Vec<i32>) -> zbus::fdo::Result<(Vec<i32>, Vec<i32>)> {
         Ok((Vec::new(), Vec::new()))
     }
 
@@ -702,7 +695,7 @@ pub async fn run_service(
     initial_tooltip: Option<String>,
     initial_title: Option<String>,
 ) {
-        let init_pixmaps: Vec<IconPixmap> = initial_icon
+    let init_pixmaps: Vec<IconPixmap> = initial_icon
         .map(|d| {
             let data = rgba_to_argb32(&d.data);
             vec![IconPixmap {
@@ -714,7 +707,7 @@ pub async fn run_service(
         .unwrap_or_default();
     let inner = Arc::new(std::sync::Mutex::new(Inner {
         id: format!("tray-icon-{}", tray_id.as_ref()),
-        tray_id,
+        tray_id: tray_id.clone(),
         icon_pixmap: init_pixmaps,
         tooltip: initial_tooltip,
         title: initial_title,
@@ -754,7 +747,8 @@ pub async fn run_service(
         // Continue anyway — watcher may use our unique name
     }
 
-    let watcher = StatusNotifierWatcherProxy::new(&conn).await
+    let watcher = StatusNotifierWatcherProxy::new(&conn)
+        .await
         .expect("StatusNotifierWatcherProxy should be valid");
 
     if let Err(e) = watcher.register_status_notifier_item(&name).await {
@@ -795,12 +789,7 @@ pub async fn run_service(
                 }
                 {
                     let mut inner = inner.lock().unwrap();
-                    inner.status = if visible {
-                        "Active"
-                    } else {
-                        "Passive"
-                    }
-                    .to_string();
+                    inner.status = if visible { "Active" } else { "Passive" }.to_string();
                 }
                 if let Some(ref menu_snapshot) = menu {
                     let mut inner = inner.lock().unwrap();
@@ -825,12 +814,7 @@ pub async fn run_service(
                         let i = inner.lock().unwrap();
                         i.revision
                     };
-                    let _ = DbusMenu::layout_updated(
-                        &menu_obj.signal_emitter(),
-                        rev,
-                        0,
-                    )
-                    .await;
+                    let _ = DbusMenu::layout_updated(&menu_obj.signal_emitter(), rev, 0).await;
                 }
             }
         }

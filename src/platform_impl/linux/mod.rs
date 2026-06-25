@@ -43,7 +43,13 @@ impl TrayIcon {
                     return;
                 }
             };
-            rt.block_on(service::run_service(cmd_rx, tray_id, init_icon, init_tooltip, init_title));
+            rt.block_on(service::run_service(
+                cmd_rx,
+                tray_id,
+                init_icon,
+                init_tooltip,
+                init_title,
+            ));
         });
 
         let mut tray = Self {
