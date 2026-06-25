@@ -8,7 +8,7 @@ use zbus::object_server::SignalEmitter;
 use zbus::zvariant::{ObjectPath, OwnedValue, Structure, Type, Value};
 
 use crate::menu::MenuId;
-use crate::TrayIconId;
+use crate::{dpi, MouseButton, MouseButtonState, Rect, TrayIconEvent, TrayIconId};
 
 pub const SNI_PATH: ObjectPath = ObjectPath::from_static_str_unchecked("/StatusNotifierItem");
 pub const MENU_PATH: ObjectPath = ObjectPath::from_static_str_unchecked("/MenuBar");
@@ -93,6 +93,7 @@ pub struct ToolTipData {
 
 pub struct Inner {
     pub id: String,
+    pub tray_id: TrayIconId,
     pub icon_pixmap: Vec<IconPixmap>,
     pub tooltip: Option<String>,
     pub title: Option<String>,
@@ -394,11 +395,27 @@ impl StatusNotifierItem {
         ))
     }
 
-    async fn activate(&self, _x: i32, _y: i32) -> zbus::fdo::Result<()> {
+    async fn activate(&self, x: i32, y: i32) -> zbus::fdo::Result<()> {
+        let inner = self.0.lock().unwrap();
+        TrayIconEvent::send(TrayIconEvent::Click {
+            id: inner.tray_id.clone(),
+            position: dpi::PhysicalPosition::new(x as f64, y as f64),
+            rect: Rect::default(),
+            button: MouseButton::Left,
+            button_state: MouseButtonState::Up,
+        });
         Ok(())
     }
 
-    async fn secondary_activate(&self, _x: i32, _y: i32) -> zbus::fdo::Result<()> {
+    async fn secondary_activate(&self, x: i32, y: i32) -> zbus::fdo::Result<()> {
+        let inner = self.0.lock().unwrap();
+        TrayIconEvent::send(TrayIconEvent::Click {
+            id: inner.tray_id.clone(),
+            position: dpi::PhysicalPosition::new(x as f64, y as f64),
+            rect: Rect::default(),
+            button: MouseButton::Middle,
+            button_state: MouseButtonState::Up,
+        });
         Ok(())
     }
 
@@ -446,7 +463,7 @@ impl StatusNotifierItem {
 
     #[zbus(property)]
     fn item_is_menu(&self) -> zbus::fdo::Result<bool> {
-        Ok(true)
+        Ok(false)
     }
 
     #[zbus(property)]
@@ -697,6 +714,7 @@ pub async fn run_service(
         .unwrap_or_default();
     let inner = Arc::new(std::sync::Mutex::new(Inner {
         id: format!("tray-icon-{}", tray_id.as_ref()),
+        tray_id,
         icon_pixmap: init_pixmaps,
         tooltip: initial_tooltip,
         title: initial_title,
