@@ -1,12 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-#[cfg(not(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "openbsd"
-)))]
 use std::{cell::RefCell, rc::Rc};
 
 use eframe::egui;
@@ -16,62 +9,16 @@ fn main() -> Result<(), eframe::Error> {
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/icon.png");
     let icon = load_icon(std::path::Path::new(path));
 
-    // Since egui uses winit under the hood and doesn't use gtk on Linux, and we need gtk for
-    // the tray icon to show up, we need to spawn a thread
-    // where we initialize gtk and create the tray_icon
-    #[cfg(any(
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd"
-    ))]
-    std::thread::spawn(|| {
-        use tray_icon::menu::Menu;
-
-        gtk::init().unwrap();
-        let _tray_icon = TrayIconBuilder::new()
-            .with_menu(Box::new(Menu::new()))
-            .with_icon(icon)
-            .build()
-            .unwrap();
-
-        gtk::main();
-    });
-
-    #[cfg(not(any(
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd"
-    )))]
     let mut _tray_icon = Rc::new(RefCell::new(None));
-    #[cfg(not(any(
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd"
-    )))]
     let tray_c = _tray_icon.clone();
 
     eframe::run_native(
         "My egui App",
         eframe::NativeOptions::default(),
         Box::new(move |_cc| {
-            #[cfg(not(any(
-                target_os = "linux",
-                target_os = "dragonfly",
-                target_os = "freebsd",
-                target_os = "netbsd",
-                target_os = "openbsd"
-            )))]
-            {
-                tray_c
-                    .borrow_mut()
-                    .replace(TrayIconBuilder::new().with_icon(icon).build().unwrap());
-            }
+            tray_c
+                .borrow_mut()
+                .replace(TrayIconBuilder::new().with_icon(icon).build().unwrap());
             Ok(Box::<MyApp>::default())
         }),
     )

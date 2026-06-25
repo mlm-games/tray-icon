@@ -5,13 +5,12 @@
 #![allow(unused)]
 
 use tray_icon::{
-    menu::{AboutMetadata, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
-    TrayIcon, TrayIconBuilder, TrayIconEvent, TrayIconEventReceiver,
+    menu::{Menu, MenuEvent, MenuItem},
+    TrayIcon, TrayIconBuilder, TrayIconEvent,
 };
 use winit::{
     application::ApplicationHandler,
-    event::Event,
-    event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
+    event_loop::{EventLoop, EventLoopBuilder},
 };
 
 #[derive(Debug)]
@@ -71,16 +70,7 @@ impl ApplicationHandler<UserEvent> for Application {
         // We create the icon once the event loop is actually running
         // to prevent issues like https://github.com/tauri-apps/tray-icon/issues/90
         if winit::event::StartCause::Init == cause {
-            #[cfg(not(any(
-                target_os = "linux",
-                target_os = "dragonfly",
-                target_os = "freebsd",
-                target_os = "netbsd",
-                target_os = "openbsd"
-            )))]
-            {
-                self.tray_icon = Some(Self::new_tray_icon());
-            }
+            self.tray_icon = Some(Self::new_tray_icon());
 
             // We have to request a redraw here to have the icon actually show up.
             // Winit only exposes a redraw method on the Window so we use core-foundation directly.
@@ -116,24 +106,6 @@ fn main() {
 
     let menu_channel = MenuEvent::receiver();
     let tray_channel = TrayIconEvent::receiver();
-
-    // Since winit doesn't use gtk on Linux, and we need gtk for
-    // the tray icon to show up, we need to spawn a thread
-    // where we initialize gtk and create the tray_icon
-    #[cfg(any(
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd"
-    ))]
-    std::thread::spawn(|| {
-        gtk::init().unwrap();
-
-        let _tray_icon = Application::new_tray_icon();
-
-        gtk::main();
-    });
 
     if let Err(err) = event_loop.run_app(&mut app) {
         println!("Error: {:?}", err);
