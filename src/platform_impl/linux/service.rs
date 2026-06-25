@@ -446,7 +446,7 @@ impl StatusNotifierItem {
 
     #[zbus(property)]
     fn item_is_menu(&self) -> zbus::fdo::Result<bool> {
-        Ok(false)
+        Ok(true)
     }
 
     #[zbus(property)]
