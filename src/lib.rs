@@ -10,28 +10,14 @@
 //!
 //! - Windows
 //! - macOS
-//! - Linux (gtk Only)
+//! - Linux (StatusNotifierItem over D-Bus)
 //!
 //! # Platform-specific notes:
 //!
-//! - On Windows and Linux, an event loop must be running on the thread, on Windows, a win32 event loop and on Linux, a gtk event loop. It doesn't need to be the main thread but you have to create the tray icon on the same thread as the event loop.
+//! - On Windows, an event loop must be running on the thread. It doesn't need to be the main thread but you have to create the tray icon on the same thread as the event loop.
 //! - On macOS, an event loop must be running on the main thread so you also need to create the tray icon on the main thread. You must make sure that the event loop is already running and not just created before creating a TrayIcon to prevent issues with fullscreen apps. In Winit for example the earliest you can create icons is on [`StartCause::Init`](https://docs.rs/winit/latest/winit/event/enum.StartCause.html#variant.Init).
 //!
-//! # Dependencies (Linux Only)
-//!
-//! On Linux, `gtk`, `libxdo` is used to make the predfined `Copy`, `Cut`, `Paste` and `SelectAll` menu items work and `libappindicator` or `libayatnat-appindicator` are used to create the tray icon, so make sure to install them on your system.
-//!
-//! #### Arch Linux / Manjaro:
-//!
-//! ```sh
-//! pacman -S gtk3 xdotool libappindicator-gtk3 #or libayatana-appindicator
-//! ```
-//!
-//! #### Debian / Ubuntu:
-//!
-//! ```sh
-//! sudo apt install libgtk-3-dev libxdo-dev libappindicator3-dev #or libayatana-appindicator3-dev
-//! ```
+
 //!
 //! # Examples
 //!
@@ -151,28 +137,15 @@ static COUNTER: Counter = Counter::new();
 /// Attributes to use when creating a tray icon.
 pub struct TrayIconAttributes {
     /// Tray icon tooltip
-    ///
-    /// ## Platform-specific:
-    ///
-    /// - **Linux:** Unsupported.
     pub tooltip: Option<String>,
 
     /// Tray menu
-    ///
-    /// ## Platform-specific:
-    ///
-    /// - **Linux**: once a menu is set, it cannot be removed.
     pub menu: Option<Box<dyn menu::ContextMenu>>,
 
     /// Tray icon
-    ///
-    /// ## Platform-specific:
-    ///
-    /// - **Linux:** Sometimes the icon won't be visible unless a menu is set.
-    ///   Setting an empty [`Menu`](crate::menu::Menu) is enough.
     pub icon: Option<Icon>,
 
-    /// Tray icon temp dir path. **Linux only**.
+    /// Tray icon temp dir path. **Linux only** (no-op with zbus backend).
     pub temp_dir_path: Option<PathBuf>,
 
     /// Use the icon as a [template](https://developer.apple.com/documentation/appkit/nsimage/1520017-template?language=objc). **macOS only**.
@@ -182,14 +155,14 @@ pub struct TrayIconAttributes {
     ///
     /// ## Platform-specific:
     ///
-    /// - **Linux:** Unsupported.
+    /// - **Linux:** Unsupported (managed by the DE/SNI host).
     pub menu_on_left_click: bool,
 
     /// Whether to show the tray menu on right click or not, default is `true`.
     ///
     /// ## Platform-specific:
     ///
-    /// - **Linux:** Unsupported.
+    /// - **Linux:** Unsupported (managed by the DE/SNI host).
     pub menu_on_right_click: bool,
 
     /// Tray icon title.
@@ -245,31 +218,18 @@ impl TrayIconBuilder {
     }
 
     /// Set the a menu for this tray icon.
-    ///
-    /// ## Platform-specific:
-    ///
-    /// - **Linux**: once a menu is set, it cannot be removed or replaced but you can change its content.
     pub fn with_menu(mut self, menu: Box<dyn menu::ContextMenu>) -> Self {
         self.attrs.menu = Some(menu);
         self
     }
 
     /// Set an icon for this tray icon.
-    ///
-    /// ## Platform-specific:
-    ///
-    /// - **Linux:** Sometimes the icon won't be visible unless a menu is set.
-    ///   Setting an empty [`Menu`](crate::menu::Menu) is enough.
     pub fn with_icon(mut self, icon: Icon) -> Self {
         self.attrs.icon = Some(icon);
         self
     }
 
     /// Set a tooltip for this tray icon.
-    ///
-    /// ## Platform-specific:
-    ///
-    /// - **Linux:** Unsupported.
     pub fn with_tooltip<S: AsRef<str>>(mut self, s: S) -> Self {
         self.attrs.tooltip = Some(s.as_ref().to_string());
         self
@@ -389,19 +349,11 @@ impl TrayIcon {
     }
 
     /// Set new tray menu.
-    ///
-    /// ## Platform-specific:
-    ///
-    /// - **Linux**: once a menu is set it cannot be removed so `None` has no effect
     pub fn set_menu(&self, menu: Option<Box<dyn menu::ContextMenu>>) {
         self.tray.borrow_mut().set_menu(menu)
     }
 
     /// Sets the tooltip for this tray icon.
-    ///
-    /// ## Platform-specific:
-    ///
-    /// - **Linux:** Unsupported
     pub fn set_tooltip<S: AsRef<str>>(&self, tooltip: Option<S>) -> Result<()> {
         self.tray.borrow_mut().set_tooltip(tooltip)
     }
@@ -532,15 +484,7 @@ impl TrayIcon {
         self.tray.borrow().ns_status_item().cloned()
     }
 
-    /// Get the tray icon's underlying [AppIndicator](libappindicator::AppIndicator) **Linux only**.
-    ///
-    /// # Safety
-    ///
-    /// The returned pointer is valid as long as the `TrayIcon` is.
-    #[cfg(all(unix, not(target_os = "macos")))]
-    pub unsafe fn app_indicator(&self) -> *const libappindicator::AppIndicator {
-        self.tray.borrow().app_indicator() as *const _
-    }
+
 }
 
 /// Describes a tray icon event.
